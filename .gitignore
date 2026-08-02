@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+.media_cache/
+.checkpoint.json
+dataset/
+*.pyc
+.env
+
+code.zip
+code_staging/

@@ -1,0 +1,31 @@
+message_id,action,message_type,reason,confidence,evidence_message_ids,gt_action,gt_message_type
+sample_msg_001,notify,event,Admin announcement in an active group with a clear precedent for event announcements from this sender.,0.85,message_0129;message_0149;message_0189,notify,urgent
+sample_msg_002,notify,event,The message is an admin announcement in an active group about a time-sensitive event.,0.85,message_0002;message_0133;message_0209,notify,event
+sample_msg_003,notify,urgent,"Direct mention in a group with admin sender, asking for urgent action",0.85,message_0003;message_0249;message_0170,notify,urgent
+sample_msg_004,digest,business_update,"The user has previously opened and replied to similar messages from this sender, indicating a pattern of engagement.",0.85,message_0239;message_0004,notify,business_update
+sample_msg_005,digest,business_update,"The user has previously opened and replied to similar messages from this business, and the current message is a health-related update.",0.85,message_0245;message_0005,notify,event
+sample_msg_006,notify,personal,Direct mention in a group with a history of personal messages from the sender,0.85,message_0006;message_0250,notify,personal
+sample_msg_007,digest,promotion,"The sender has a history of sending similar promotional messages to this user, and the current message is likely to be ignored.",0.85,message_0272;message_0033;message_0007,digest,promotion
+sample_msg_008,digest,event,Similar message from the same sender in the past (message_0008) indicates a pattern of event announcements.,0.7,message_0008,digest,event
+sample_msg_009,digest,greeting,User has a history of dismissing similar messages from this sender and the message is a generic greeting.,0.9,message_0121;message_0009,digest,greeting
+sample_msg_010,digest,event,"The sender has a history of sending event-related messages to this user, and this message is similar in content.",0.7,message_0010;message_0192,digest,personal
+sample_msg_011,digest,business_update,"The user has previously opened similar messages from this business, and the current message is a request for feedback.",0.85,message_0011;message_0242,digest,business_update
+sample_msg_012,digest,promotion,"The sender has a history of sending promotional messages to this user, and this message is a clear advertisement for a product.",0.85,message_0012,digest,promotion
+sample_msg_013,digest,greeting,User has previously dismissed similar messages from the same sender.,0.8,message_0014;message_0077;message_0171,mute,greeting
+sample_msg_014,digest,forward,"Highly forwarded message with no personal/actionable content, and user has dismissed similar content from the same sender before.",0.8,message_0015;message_0016,mute,forward
+sample_msg_015,digest,promotion,User has previously dismissed similar promotional content from this business.,0.85,message_0017;message_0258;message_0018,mute,promotion
+sample_msg_019,mute,scam,Muted by safety rule: requests OTP/PIN alongside a link or payment.,0.9,message_0045;message_0023,mute,scam
+sample_msg_020,mute,scam,Muted by safety rule: requests OTP/PIN alongside a link or payment.,0.95,message_0024;message_0087;message_0184,mute,scam
+sample_msg_041,digest,personal,"The sender has a history of sending personal check-ins to this user, and the current message is a voice note with no transcription, suggesting it may be a personal message.",0.7,message_0046;message_0035,digest,personal
+sample_msg_042,digest,event,"The sender typically sends event announcements to this user, as seen in evidence_candidates.",0.7,message_0035;message_0148,notify,urgent
+sample_msg_043,digest,unknown,"Strong evidence of user ignoring similar messages from this business, combined with a voice note without transcription and a risk score of 1 indicating potential scam.",0.65,message_0048;message_0357,mute,spam
+sample_msg_044,digest,promotion,"The sender has a history of sending promotional content to this user, and the current message is similar in nature.",0.85,message_0401;message_0390;message_0332,digest,promotion
+sample_msg_045,digest,promotion,"The sender has a history of sending promotional messages to this user, and the current message is similar in content.",0.85,message_0401;message_0115;message_0232,mute,promotion
+sample_msg_046,digest,event,Strong precedent from sender u_045 sending event announcements to this user in group group_003,0.85,message_0403;message_0255;message_0037,notify,event
+sample_msg_047,digest,promotion,The user has previously dismissed similar promotional messages from this business.,0.85,message_0402;message_0257,mute,promotion
+sample_msg_048,notify,business_update,"Risk signals indicate a likely scam/phishing pattern, including asking for OTP or payment details, and the message is from a business with a verified domain.",0.85,message_0412;message_0053,digest,business_update
+sample_msg_049,digest,event,"The sender typically sends event announcements, as shown by evidence_message_id message_0300.",0.7,message_0300,digest,unknown
+sample_msg_050,digest,personal,"The user has previously engaged with similar messages from this sender, and the current message is a casual check-in.",0.85,message_0054;message_0226;message_0168,digest,personal
+sample_msg_051,notify,urgent,The message contains urgent language ('Retry count crossed the alert threshold and escalation starts in 20 minutes') and is from a sender the user has previously replied to.,0.95,message_0228;message_0362;message_0055,notify,urgent
+sample_msg_052,mute,scam,Muted by safety rule: requests OTP/PIN alongside a link or payment.,0.9,message_0238;message_0381,mute,scam
+sample_msg_053,mute,scam,Muted by safety rule: requests OTP/PIN alongside a link or payment.,0.95,message_0214;message_0173;message_0213,mute,scam
