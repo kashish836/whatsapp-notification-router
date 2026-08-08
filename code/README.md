@@ -1,5 +1,7 @@
 # Message Notification Router — HackerRank Orchestrate
 
+🔗 Live demo: https://whatsapp-notification-router.onrender.com — a real-time chat UI where you can test the router live. (Free-tier hosting: may take 30-60 seconds to wake up on first load.)
+
 An AI-powered WhatsApp notification router that decides `notify` / `digest` / `mute`
 for every incoming message, using multimodal reasoning (text, image posters, voice
 notes) personalized to each user's behavior — with a deterministic safety net that
@@ -60,6 +62,32 @@ messages.csv row
 - **`evaluation/evaluate.py`** — runs the same pipeline against the 30 solved
   rows in `sample_messages.csv` and reports action/message_type accuracy and
   evidence-overlap, so you can tune before spending quota on the full run.
+
+---
+
+## Live Web App (Relay)
+
+This adds a Flask server (`server.py`) and a browser-based chat UI (`static/index.html`) on top of the existing batch pipeline — the core routing logic (`data_loader`, `retrieval`, `safety`, `router`) is unchanged and shared by both the CLI batch run and the live web app.
+
+- **`GET /api/threads`** — serves the pre-classified `dataset/output.csv` messages as chat threads.
+- **`GET /api/directory`** — resolves user/group/business IDs to display names (loads `users.csv`, `groups.csv`, `business_accounts.csv`).
+- **`POST /api/route`** — the live endpoint: takes a typed message and runs it through the real pipeline (`route_message()` in `router.py`) for an on-the-spot classification, same Groq call and `safety.py` override as the batch run.
+- Basic abuse protection on `/api/route`: 5 requests per IP per 10-minute window, 150 total requests per day, input length validation — since this is a public demo sharing one free-tier Groq quota.
+
+### Running the web app locally
+
+```bash
+cd code
+pip install -r requirements.txt
+export GROQ_API_KEY=your_key_here   # Windows: $env:GROQ_API_KEY='your_key_here'
+python server.py
+```
+
+Then open http://127.0.0.1:5000
+
+### Deployment
+
+Deployed on [Render](https://render.com) (free tier) using the included `Procfile` and gunicorn. The `GROQ_API_KEY` is set as an environment variable in Render's dashboard — never committed to the repo. On first spin-up the free-tier instance may take 30–60 seconds to wake from sleep.
 
 ---
 
