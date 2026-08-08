@@ -96,7 +96,7 @@ This prints per-row correctness and a final accuracy summary. If accuracy is
 low, the prompt (`SYSTEM_PROMPT` in `router.py`) or the safety rules
 (`safety.py`) are the places to adjust.
 
-**3. Full run** (110 messages, ~8-10 minutes at the default pacing):
+**3. Full run** (110 messages, ~44 minutes at the default pacing (2662s measured on the full 110-message run)):
 ```bash
 python main.py
 ```
@@ -108,11 +108,30 @@ resumes automatically from `.checkpoint.json`. You can also increase pacing:
 python main.py --sleep 8
 ```
 
-If `llama-3.3-70b-versatile` free quota runs out for the day, switch model:
+The current default model is `llama-3.1-8b-instant` (switched from `llama-3.3-70b-versatile`
+after hitting its 100K tokens-per-day free-tier limit during evaluation). You can
+override it via the `GROQ_MODEL` env var:
 ```bash
-export GROQ_MODEL=llama-3.1-8b-instant
+export GROQ_MODEL=llama-3.3-70b-versatile    # if you have quota on the larger model
 python main.py
 ```
+
+---
+
+## Evaluation Results
+
+Final numbers on the 30-sample `sample_messages.csv` (after four targeted fix rounds):
+
+| Metric | Score |
+|--------|-------|
+| Action accuracy | 19/30 (63.3%) |
+| Message_type accuracy | 24/30 (80.0%) |
+| Evidence overlap | 21/28 (75.0%) |
+
+Fix rounds addressed: business/promotion/event disambiguation, mute-vs-digest
+defaults for forwarded chains and generic greetings, sparse-evidence inference
+for untranscribed voice notes, and a safety.py gap where personal-message OTP
+scams were not caught by the deterministic override.
 
 ---
 

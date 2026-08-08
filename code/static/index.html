@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relay — AI Message Router</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232BAF7A'/><path d='M6.02 21L23 16 6.02 11 6 15l12 1-12 1z' fill='white'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── light theme (default) ── */
+    :root {
+      --bg: #EFEAE2;
+      --thread-bg: #E9E4DA;
+      --panel-bg: #FFFFFF;
+      --bubble-bg: #FFFFFF;
+      --chip-bg: #F3F4F6;
+      --hover-bg: #F9FAFB;
+      --text: #1F2937;
+      --text-secondary: #374151;
+      --text-muted: #6B7280;
+      --text-faint: #9CA3AF;
+      --border: #E5E7EB;
+      --border-light: #F3F4F6;
+      --border-strong: #D1D5DB;
+      --svg-fill: #fff;
+      --shadow-color: rgba(0,0,0,0.08);
+    }
+    /* ── dark theme ── */
+    body.dark {
+      --bg: #0F1416;
+      --thread-bg: #131A1E;
+      --panel-bg: #1A2027;
+      --bubble-bg: #232B33;
+      --chip-bg: rgba(255,255,255,0.06);
+      --hover-bg: rgba(255,255,255,0.04);
+      --text: #ECEEF2;
+      --text-secondary: #C0C4CC;
+      --text-muted: #8B93A1;
+      --text-faint: #6B7380;
+      --border: rgba(255,255,255,0.08);
+      --border-light: rgba(255,255,255,0.05);
+      --border-strong: rgba(255,255,255,0.12);
+      --svg-fill: #ECEEF2;
+      --shadow-color: rgba(0,0,0,0.25);
+    }
+
+    body {
+      font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── header ── */
+    .header {
+      height: 60px;
+      min-height: 60px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      position: relative;
+      z-index: 20;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-mark {
+      width: 28px; height: 28px;
+      background: #2BAF7A;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .header-mark svg { width: 16px; height: 16px; fill: #fff; }
+    .header-wordmark {
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text);
+    }
+    .header-tagline {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-faint);
+      margin-left: 4px;
+    }
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--chip-bg);
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .stat-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+    .how-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .how-btn:hover { border-color: var(--text-faint); }
+
+    /* ── how-overlay ── */
+    .how-overlay {
+      display: none;
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      width: 320px;
+      background: var(--panel-bg);
+      border-radius: 12px;
+      box-shadow: 0 8px 30px var(--shadow-color);
+      padding: 20px;
+      z-index: 30;
+    }
+    .how-overlay.open { display: block; }
+    .how-overlay-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: var(--text-faint);
+      cursor: pointer;
+      line-height: 1;
+    }
+    .how-overlay-title {
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    .how-overlay p {
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .how-overlay p:last-child { margin-bottom: 0; }
+
+    /* ── app layout ── */
+    .app {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── sidebar ── */
+    .sidebar {
+      width: 340px;
+      min-width: 340px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 0;
+      text-align: center;
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: var(--text-faint);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text-muted); }
+    .tab-btn.active {
+      color: var(--text);
+      border-bottom-color: #2BAF7A;
+    }
+    .tab-panel { display: none; flex: 1; overflow-y: auto; list-style: none; }
+    .tab-panel.active { display: block; }
+    .contact-list { padding: 0; margin: 0; }
+    .history-list { padding: 0; margin: 0; }
+    .history-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      gap: 10px;
+    }
+    .history-row:hover { background: var(--hover-bg); }
+    .history-info { flex: 1; min-width: 0; }
+    .history-name {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .history-preview {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .history-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .history-time {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+    .history-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-faint);
+      font-size: 0.88rem;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    @keyframes flashHighlight {
+      0%   { background-color: rgba(251,191,36,0.25); }
+      100% { background-color: transparent; }
+    }
+    .bubble-flash { animation: flashHighlight 1s ease-out; }
+    .contact-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+    }
+    .contact-row:hover { background: var(--hover-bg); }
+    .contact-row.active { background: var(--chip-bg); }
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .contact-preview {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .live-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: #2BAF7A;
+      letter-spacing: 0.05em;
+      margin-left: 6px;
+    }
+    .action-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    /* ── main area ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* ── conversation header (sticky inside main) ── */
+    .conv-header {
+      display: none;
+      align-items: center;
+      padding: 10px 20px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 12px;
+    }
+    .conv-header.open { display: flex; }
+    .conv-header .avatar { margin-right: 0; }
+    .conv-header-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .conv-header-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-faint);
+      margin-top: 1px;
+    }
+
+    /* ── thread / bubbles ── */
+    .thread-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      /* wallpaper: thread-bg base + 4% opacity diagonal-line pattern */
+      background-color: var(--thread-bg);
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 6px,
+        rgba(128,128,128,0.04) 6px,
+        rgba(128,128,128,0.04) 7px
+      );
+    }
+    .bubble {
+      background: var(--bubble-bg);
+      border-radius: 4px 14px 14px 14px;
+      box-shadow: 0 1px 2px var(--shadow-color);
+      padding: 10px 14px;
+      max-width: 720px;
+      align-self: flex-start;
+      position: relative;
+    }
+    /* bubble tail */
+    .bubble::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -8px;
+      width: 0;
+      height: 0;
+      border-top: 8px solid var(--bubble-bg);
+      border-left: 8px solid transparent;
+      filter: drop-shadow(-1px -1px 1px var(--shadow-color));
+    }
+    .bubble-live {
+      animation: slideIn 0.2s ease-out;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .bubble-sender {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .bubble-text {
+      font-size: 0.92rem;
+      line-height: 1.45;
+      margin-bottom: 6px;
+    }
+    .bubble-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: #fff;
+    }
+    .tag-notify { background: #2BAF7A; }
+    .tag-digest { background: #D9A441; }
+    .tag-mute  { background: #9098A3; }
+    .tag-scam  { background: #E35B5B; }
+    .conf-ring {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+    .conf-ring-bg { fill: none; stroke: var(--border); stroke-width: 3; }
+    .conf-ring-fg { fill: none; stroke-width: 3; stroke-linecap: round;
+      transform: rotate(-90deg); transform-origin: center; }
+    .conf-ring-text {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8px;
+      font-weight: 600;
+      fill: var(--text-secondary);
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .bubble-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    /* timestamp + check row */
+    .bubble-foot {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .bubble-ts {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+    .bubble-check {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+    body.dark .bubble-check path { stroke: var(--text-faint); }
+
+    /* ── placeholder ── */
+    .placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-faint);
+      gap: 12px;
+    }
+    .placeholder svg { width: 48px; height: 48px; stroke: var(--border-strong); fill: none; stroke-width: 1.5; }
+    .placeholder-text { font-size: 0.95rem; }
+
+    /* ── composer ── */
+    .composer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      background: var(--panel-bg);
+      border-top: 1px solid var(--border);
+    }
+    .composer-inputs {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+    }
+    .sender-wrap {
+      position: relative;
+      width: 130px;
+      flex-shrink: 0;
+    }
+    .sender-hint {
+      display: none;
+      position: absolute;
+      bottom: -14px;
+      left: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--text-faint);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .sender-hint.visible { display: block; }
+    /* thread open: hide sender input, expand message input */
+    .composer.thread-open .sender-wrap { display: none; }
+    .composer.thread-open .composer-inputs { gap: 0; }
+    .composer input {
+      border: none;
+      border-radius: 20px;
+      padding: 9px 16px;
+      font-size: 0.9rem;
+      background: var(--bubble-bg);
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+    }
+    .composer input.sender-input { width: 100%; }
+    .composer input.text-input { flex: 1; }
+    .send-btn {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      border: none;
+      background: #2BAF7A;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+      position: relative;
+    }
+    .send-btn:disabled { opacity: 0.5; cursor: default; }
+    .send-btn svg { width: 20px; height: 20px; fill: #fff; }
+    .send-btn .plane-icon { transition: opacity 0.1s; }
+    .send-btn.loading .plane-icon { opacity: 0; position: absolute; }
+    .send-btn .pulse-dot {
+      display: none;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .send-btn.loading .pulse-dot {
+      display: block;
+      animation: pulse 1s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.6); opacity: 0.4; }
+    }
+
+    /* ── theme toggle ── */
+    .theme-toggle {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .theme-toggle:hover { border-color: var(--text-faint); color: var(--text); }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-toggle .icon-sun { display: none; }
+    .theme-toggle .icon-moon { display: block; }
+    body.dark .theme-toggle .icon-sun { display: block; }
+    body.dark .theme-toggle .icon-moon { display: none; }
+    /* dark mode: adapt hardcoded-white SVGs */
+    body.dark .header-mark svg { fill: var(--text); }
+    body.dark .send-btn svg { fill: var(--text); }
+
+    /* ── error banner ── */
+    .error-banner {
+      display: none;
+      padding: 8px 20px;
+      background: #FEE2E2;
+      color: #991B1B;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.4;
+      border-top: 1px solid #FECACA;
+      flex-shrink: 0;
+    }
+    body.dark .error-banner {
+      background: rgba(239,68,68,0.15);
+      color: #FCA5A5;
+      border-top-color: rgba(239,68,68,0.2);
+    }
+    .error-banner.visible { display: block; }
+
+    /* ── scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body>
+  <!-- header -->
+  <div class="header">
+    <div class="header-brand">
+      <div class="header-mark">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </div>
+      <span class="header-wordmark">Relay</span>
+      <span class="header-tagline">AI message router</span>
+    </div>
+    <div class="header-right">
+      <div class="stat-chip"><span class="stat-dot" style="background:#2BAF7A"></span><span id="stat-notify">0</span></div>
+      <div class="stat-chip"><span class="stat-dot" style="background:#D9A441"></span><span id="stat-digest">0</span></div>
+      <div class="stat-chip"><span class="stat-dot" style="background:#9098A3"></span><span id="stat-mute">0</span></div>
+      <button class="how-btn" id="how-btn">How this works</button>
+      <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+    <!-- overlay panel -->
+    <div class="how-overlay" id="how-overlay">
+      <button class="how-overlay-close" id="how-close">&times;</button>
+      <div class="how-overlay-title">How Relay works</div>
+      <p>Every incoming message is classified by a Groq-hosted LLM into notify, digest, or mute, personalized to each user's engagement history.</p>
+      <p>A separate rule-based safety layer runs in parallel and can override the AI's decision to mute scams or risk messages, regardless of personalization.</p>
+      <p>The sidebar shows real classification decisions from the pre-loaded dataset. Use the composer at the bottom to test your own messages live.</p>
+    </div>
+  </div>
+
+  <!-- app body -->
+  <div class="app">
+    <!-- sidebar -->
+    <div class="sidebar">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="threads">Threads</button>
+        <button class="tab-btn" data-tab="history">History</button>
+      </div>
+      <div class="tab-panel active" id="panel-threads">
+        <ul class="contact-list" id="threads"></ul>
+      </div>
+      <div class="tab-panel" id="panel-history">
+        <ul class="history-list" id="history-list"></ul>
+        <div class="history-empty" id="history-empty">Messages you test will show up here.</div>
+      </div>
+    </div>
+
+    <!-- main area -->
+    <div class="main">
+      <!-- conversation header (hidden until thread selected) -->
+      <div class="conv-header" id="conv-header">
+        <div class="avatar" id="conv-avatar"></div>
+        <div>
+          <div class="conv-header-name" id="conv-name"></div>
+          <div class="conv-header-meta" id="conv-meta"></div>
+        </div>
+      </div>
+
+      <div class="thread-area" id="thread-area">
+        <div class="placeholder" id="placeholder">
+          <svg viewBox="0 0 48 48"><path d="M8 36V12a4 4 0 014-4h24a4 4 0 014 4v16a4 4 0 01-4 4H16l-8 8z" stroke-linejoin="round"/><line x1="16" y1="18" x2="32" y2="18"/><line x1="16" y1="24" x2="28" y2="24"/></svg>
+          <span class="placeholder-text">Pick a conversation to see how Relay routed it.</span>
+        </div>
+      </div>
+
+      <div class="error-banner" id="error-banner"></div>
+
+      <div class="composer">
+        <div class="composer-inputs">
+          <div class="sender-wrap">
+            <input class="sender-input" type="text" id="sender" placeholder="Sender ID">
+            <span class="sender-hint" id="sender-hint"></span>
+          </div>
+          <input class="text-input" type="text" id="msgtext" placeholder="Type a message…">
+        </div>
+        <button class="send-btn" id="send-btn" onclick="tryRoute()">
+          <svg class="plane-icon" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          <span class="pulse-dot"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── helpers ── */
+    function hashCode(s) {
+      var h = 0;
+      for (var i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+      return Math.abs(h);
+    }
+    var pastels = ['#F87171','#FB923C','#FBBF24','#34D399','#60A5FA','#A78BFA','#F472B6','#2DD4BF','#E879F9','#38BDF8'];
+    function avatarColor(id) { return pastels[hashCode(id) % pastels.length]; }
+    function dotColor(action) {
+      return action === 'notify' ? '#2BAF7A' : action === 'digest' ? '#D9A441' : '#9098A3';
+    }
+    function actionColor(action) {
+      return action === 'notify' ? '#2BAF7A' : action === 'digest' ? '#D9A441' : action === 'scam' ? '#E35B5B' : '#9098A3';
+    }
+    function bestAction(items) {
+      if (items.some(function(i) { return i.action === 'notify'; })) return 'notify';
+      if (items.some(function(i) { return i.action === 'digest'; })) return 'digest';
+      return 'mute';
+    }
+    function threadKey(item) {
+      return item.group_id || item.business_id || item.sender_user_id || 'unknown';
+    }
+    function displayName(key, items) {
+      if (items[0].group_id) return resolveName(items[0].group_id);
+      if (items[0].business_id) return resolveName(items[0].business_id);
+      return resolveName(key);
+    }
+    function threadType(key, items) {
+      if (items[0].group_id) return 'group';
+      if (items[0].business_id) return 'business';
+      return 'personal';
+    }
+    function formatTs(ts) {
+      if (!ts) return 'just now';
+      var parts = ts.split(' ');
+      if (parts.length < 2) return ts;
+      return parts[1];
+    }
+    function confRing(pct, color) {
+      var r = 11, c = 2 * Math.PI * r;
+      var offset = c * (1 - pct / 100);
+      return '<svg class="conf-ring" viewBox="0 0 28 28">' +
+        '<circle class="conf-ring-bg" cx="14" cy="14" r="' + r + '"/>' +
+        '<circle class="conf-ring-fg" cx="14" cy="14" r="' + r + '" stroke="' + color + '" stroke-dasharray="' + c + '" stroke-dashoffset="' + offset + '"/>' +
+        '<text class="conf-ring-text" x="14" y="14">' + Math.round(pct) + '</text>' +
+      '</svg>';
+    }
+    function renderBubble(item, animate) {
+      var rawSender = item.sender_user_id || item.business_id || item.group_id || 'unknown';
+      var sender = resolveName(rawSender);
+      var text = item.message_text || '[no text]';
+      var tagClass = 'tag-' + item.action;
+      var pct = Math.round((parseFloat(item.confidence) || 0) * 100);
+      var color = actionColor(item.action);
+      var cls = animate ? 'bubble bubble-live' : 'bubble';
+      var ts = formatTs(item.timestamp);
+      var checkSvg = '<svg class="bubble-check" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      return '<div class="' + cls + '">' +
+        '<div class="bubble-sender">' + sender + '</div>' +
+        '<div class="bubble-text">' + text + '</div>' +
+        '<div class="bubble-row">' +
+          '<span class="tag ' + tagClass + '">' + item.action + '</span>' +
+          '<span class="tag" style="background:#374151">' + item.message_type + '</span>' +
+          confRing(pct, color) +
+        '</div>' +
+        '<div class="bubble-meta">' +
+          item.reason + '<br>' +
+          'evidence: ' + item.evidence_message_ids +
+        '</div>' +
+        '<div class="bubble-foot">' +
+          '<span class="bubble-ts">' + ts + '</span>' +
+          checkSvg +
+        '</div>' +
+      '</div>';
+    }
+    function nowTimestamp() {
+      var d = new Date();
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0') + ' ' +
+        String(d.getHours()).padStart(2, '0') + ':' +
+        String(d.getMinutes()).padStart(2, '0');
+    }
+
+    /* ── how-overlay toggle ── */
+    document.getElementById("how-btn").addEventListener("click", function() {
+      document.getElementById("how-overlay").classList.toggle("open");
+    });
+    document.getElementById("how-close").addEventListener("click", function() {
+      document.getElementById("how-overlay").classList.remove("open");
+    });
+
+    /* ── theme toggle ── */
+    var _themeDark = false;
+    document.getElementById("theme-toggle").addEventListener("click", function() {
+      _themeDark = !_themeDark;
+      document.body.classList.toggle("dark", _themeDark);
+    });
+
+    /* ── stat chips ── */
+    function updateStats() {
+      var counts = {notify: 0, digest: 0, mute: 0};
+      Object.keys(threadGroups).forEach(function(key) {
+        var action = bestAction(threadGroups[key]);
+        counts[action]++;
+      });
+      document.getElementById("stat-notify").textContent = counts.notify;
+      document.getElementById("stat-digest").textContent = counts.digest;
+      document.getElementById("stat-mute").textContent = counts.mute;
+    }
+
+    /* ── state ── */
+    var threadGroups = {};
+    var liveKeys = {};
+    var selectedKey = null;
+    var directory = { users: {}, groups: {}, businesses: {} };
+    var liveHistory = [];
+    var activeTab = 'threads';
+
+    /* ── name resolution ── */
+    function resolveName(id) {
+      if (!id) return 'unknown';
+      if (directory.businesses[id]) return directory.businesses[id];
+      if (directory.groups[id]) return directory.groups[id];
+      if (directory.users[id]) return directory.users[id];
+      return id;
+    }
+
+    /* ── tab switching ── */
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+      });
+      document.getElementById('panel-threads').classList.toggle('active', tab === 'threads');
+      document.getElementById('panel-history').classList.toggle('active', tab === 'history');
+    }
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { switchTab(this.dataset.tab); });
+    });
+
+    /* ── relative time ── */
+    function relativeTime(ts) {
+      if (!ts) return 'just now';
+      var now = Date.now();
+      var parts = ts.split(' ');
+      var d;
+      if (parts.length >= 2) {
+        d = new Date(parts[0] + 'T' + parts[1]);
+      } else {
+        d = new Date(ts);
+      }
+      if (isNaN(d.getTime())) return 'just now';
+      var diff = Math.floor((now - d.getTime()) / 1000);
+      if (diff < 5) return 'just now';
+      if (diff < 60) return diff + 's ago';
+      var mins = Math.floor(diff / 60);
+      if (mins < 60) return mins + ' min ago';
+      var hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + ' hr ago';
+      return Math.floor(hrs / 24) + 'd ago';
+    }
+
+    /* ── render history tab ── */
+    function renderHistory() {
+      var ul = document.getElementById('history-list');
+      var empty = document.getElementById('history-empty');
+      ul.innerHTML = '';
+      if (liveHistory.length === 0) {
+        empty.style.display = 'flex';
+        return;
+      }
+      empty.style.display = 'none';
+      /* reverse-chronological: iterate from end */
+      for (var i = liveHistory.length - 1; i >= 0; i--) {
+        var item = liveHistory[i];
+        var rawSender = item.sender_user_id || item.business_id || item.group_id || 'unknown';
+        var name = resolveName(rawSender);
+        var preview = (item.message_text || '[no text]');
+        if (preview.length > 40) preview = preview.substring(0, 40) + '\u2026';
+        var tagClass = 'tag-' + item.action;
+        var li = document.createElement('li');
+        li.className = 'history-row';
+        li.dataset.mid = item.message_id || '';
+        li.dataset.key = rawSender;
+        li.innerHTML =
+          '<div class="avatar" style="background:' + avatarColor(rawSender) + '">' + name.charAt(0).toUpperCase() + '</div>' +
+          '<div class="history-info">' +
+            '<div class="history-name">' + name + '</div>' +
+            '<div class="history-preview">' + preview + '</div>' +
+          '</div>' +
+          '<div class="history-meta">' +
+            '<span class="tag ' + tagClass + '">' + item.action + '</span>' +
+            '<span class="history-time">' + relativeTime(item.timestamp) + '</span>' +
+          '</div>';
+        li.addEventListener('click', (function(mid, key) {
+          return function() {
+            /* switch to threads tab and select the thread */
+            switchTab('threads');
+            selectThread(key);
+            /* scroll to and flash the specific bubble */
+            setTimeout(function() {
+              var bubbles = document.querySelectorAll('.bubble');
+              for (var b = 0; b < bubbles.length; b++) {
+                var textEl = bubbles[b].querySelector('.bubble-text');
+                if (textEl && textEl.textContent === (liveHistory.find(function(h) { return h.message_id === mid; }) || {}).message_text) {
+                  bubbles[b].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  bubbles[b].classList.add('bubble-flash');
+                  setTimeout(function(el) { el.classList.remove('bubble-flash'); }.bind(null, bubbles[b]), 1100);
+                  break;
+                }
+              }
+            }, 60);
+          };
+        })(item.message_id, rawSender));
+        ul.appendChild(li);
+      }
+    }
+
+    /* ── rebuild sidebar from threadGroups ── */
+    function renderSidebar() {
+      var ul = document.getElementById("threads");
+      ul.innerHTML = "";
+
+      var keys = Object.keys(threadGroups).sort(function(a, b) {
+        var aLast = threadGroups[a][threadGroups[a].length - 1];
+        var bLast = threadGroups[b][threadGroups[b].length - 1];
+        return (bLast.timestamp || '').localeCompare(aLast.timestamp || '');
+      });
+
+      keys.forEach(function(key) {
+        var items = threadGroups[key];
+        var latest = items[items.length - 1];
+        var name = displayName(key, items);
+        var preview = latest.message_text || '[no text]';
+        var action = bestAction(items);
+
+        var li = document.createElement("li");
+        li.className = "contact-row" + (key === selectedKey ? " active" : "");
+        li.dataset.key = key;
+        li.innerHTML =
+          '<div class="avatar" style="background:' + avatarColor(key) + '">' + name.charAt(0).toUpperCase() + '</div>' +
+          '<div class="contact-info">' +
+            '<div class="contact-name">' + name + (liveKeys[key] ? '<span class="live-label">LIVE</span>' : '') + '</div>' +
+            '<div class="contact-preview">' + preview + '</div>' +
+          '</div>' +
+          '<div class="action-dot" style="background:' + dotColor(action) + '"></div>';
+        li.addEventListener("click", function() { selectThread(key); });
+        ul.appendChild(li);
+      });
+
+      updateStats();
+    }
+
+    /* ── load threads + directory from API ── */
+    Promise.all([
+      fetch("/api/threads").then(function(r) { return r.json(); }),
+      fetch("/api/directory").then(function(r) { return r.json(); })
+    ]).then(function(results) {
+      var data = results[0];
+      directory = results[1] || directory;
+
+      data.forEach(function(item) {
+        var key = threadKey(item);
+        if (!threadGroups[key]) threadGroups[key] = [];
+        threadGroups[key].push(item);
+      });
+      Object.keys(threadGroups).forEach(function(key) {
+        threadGroups[key].sort(function(a, b) {
+          return (a.timestamp || '').localeCompare(b.timestamp || '');
+        });
+      });
+      renderSidebar();
+    });
+
+    /* ── sender input: show resolved name hint ── */
+    document.getElementById("sender").addEventListener("input", function() {
+      var val = this.value.trim();
+      var hint = document.getElementById("sender-hint");
+      if (!val) {
+        hint.classList.remove("visible");
+        hint.textContent = '';
+        return;
+      }
+      var resolved = resolveName(val);
+      if (resolved !== val) {
+        hint.textContent = 'Sending as: ' + resolved;
+        hint.classList.add("visible");
+      } else {
+        hint.classList.remove("visible");
+        hint.textContent = '';
+      }
+    });
+
+    /* ── select a thread ── */
+    function selectThread(key) {
+      selectedKey = key;
+
+      document.querySelectorAll(".contact-row").forEach(function(el) {
+        el.classList.toggle("active", el.dataset.key === key);
+      });
+
+      var ph = document.getElementById("placeholder");
+      if (ph) ph.style.display = "none";
+
+      /* show sender input only when no thread is open */
+      document.querySelector(".composer").classList.add("thread-open");
+      document.getElementById("sender-hint").classList.remove("visible");
+      document.getElementById("sender-hint").textContent = '';
+
+      /* populate conversation header */
+      var items = threadGroups[key];
+      var name = displayName(key, items);
+      var type = threadType(key, items);
+      var ch = document.getElementById("conv-header");
+      ch.classList.add("open");
+      var ca = document.getElementById("conv-avatar");
+      ca.style.background = avatarColor(key);
+      ca.textContent = name.charAt(0).toUpperCase();
+      document.getElementById("conv-name").textContent = name;
+      document.getElementById("conv-meta").textContent = items.length + ' message' + (items.length !== 1 ? 's' : '') + ' \u00b7 ' + type;
+
+      var area = document.getElementById("thread-area");
+      area.querySelectorAll(".bubble").forEach(function(el) { el.remove(); });
+
+      items.forEach(function(item) {
+        var div = document.createElement("div");
+        div.innerHTML = renderBubble(item, false);
+        area.appendChild(div.firstElementChild);
+      });
+
+      area.scrollTop = area.scrollHeight;
+    }
+
+    /* ── error banner ── */
+    var _errorTimer = null;
+    function showError(msg) {
+      var el = document.getElementById("error-banner");
+      el.textContent = msg;
+      el.classList.add("visible");
+      clearTimeout(_errorTimer);
+      _errorTimer = setTimeout(function() { el.classList.remove("visible"); }, 5000);
+    }
+
+    /* ── try-route ── */
+    function tryRoute() {
+      var btn = document.getElementById("send-btn");
+      var text = document.getElementById("msgtext").value.trim();
+
+      /* determine sender: use selected thread's key, or fall back to input */
+      var sender;
+      if (selectedKey) {
+        sender = selectedKey;
+      } else {
+        sender = document.getElementById("sender").value.trim();
+      }
+
+      if (!sender || !text) return;
+
+      /* clear any prior error */
+      document.getElementById("error-banner").classList.remove("visible");
+
+      /* ensure thread exists and select it */
+      if (!threadGroups[sender]) {
+        threadGroups[sender] = [];
+        liveKeys[sender] = true;
+        renderSidebar();
+      }
+      selectThread(sender);
+
+      btn.disabled = true;
+      btn.classList.add("loading");
+
+      fetch("/api/route", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({sender_user_id: sender, message_text: text})
+      })
+        .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+        .then(function(resp) {
+          if (resp.status >= 400) {
+            showError(resp.data.error || 'Unknown error');
+          } else {
+            var d = resp.data;
+            liveKeys[sender] = true;
+            var item = {
+              sender_user_id: sender,
+              message_text: text,
+              action: d.action,
+              message_type: d.message_type,
+              reason: d.reason,
+              confidence: d.confidence,
+              evidence_message_ids: d.evidence_message_ids,
+              timestamp: nowTimestamp()
+            };
+            threadGroups[sender].push(item);
+            liveHistory.push(item);
+            renderSidebar();
+            renderHistory();
+
+            /* append bubble with animation */
+            var area = document.getElementById("thread-area");
+            var div = document.createElement("div");
+            div.innerHTML = renderBubble(item, true);
+            area.appendChild(div.firstElementChild);
+            area.scrollTop = area.scrollHeight;
+          }
+        })
+        .catch(function(err) {
+          showError(err.message || 'Network error');
+        })
+        .finally(function() {
+          btn.disabled = false;
+          btn.classList.remove("loading");
+          document.getElementById("msgtext").value = "";
+        });
+    }
+  </script>
+</body>
+</html>
